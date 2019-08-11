@@ -1,38 +1,36 @@
-FROM debian:stretch-slim
+FROM tqwboy/java12:1.0.0
 MAINTAINER tqw "jack_coder@outlook.com"
 
 ENV LANG C.UTF-8
 
 # set environment
-ENV MODE="cluster" \
+ENV MODE="standalone" \
     PREFER_HOST_MODE="ip"\
-    BASE_DIR="/opt/nacos" \
-    CLASSPATH=".:/opt/nacos/conf:$CLASSPATH" \
-    CLUSTER_CONF="/opt/nacos/conf/cluster.conf" \
-    FUNCTION_MODE="all" \
+    BASE_DIR="/home/nacos" \
+    CLASSPATH=".:/home/nacos/conf:$CLASSPATH" \
+    CLUSTER_CONF="/home/nacos/conf/cluster.conf" \
     NACOS_USER="nacos" \
-    TIME_ZONE="Asia/Shanghai"\
-    JAVA_HOME="/usr/lib/jvm/java-12-openjdk-amd64"
+    JAVA="/usr/lib/jvm/java-12-openjdk-amd64/bin/java" \
+    JVM_XMS="2g" \
+    JVM_XMX="2g" \
+    JVM_XMN="1g" \
+    JVM_MS="128m" \
+    JVM_MMS="320m" \
+    NACOS_DEBUG="n" \
+    TOMCAT_ACCESSLOG_ENABLED="false"
 
-ARG NACOS_VERSION=1.0.0
+ARG NACOS_VERSION=1.1.3
 
-RUN apt-get update && apt-get -y upgrade \
-    && echo 'deb http://ftp.de.debian.org/debian sid main ' >> '/etc/apt/sources.list' \
-    && apt-get -y update \
-    && mkdir -p /usr/share/man/man1 \
-    && apt-get -y install openjdk-12-jre-headless \
-    && apt-get -y install wget \
-    && wget https://github.com/alibaba/nacos/releases/download/${NACOS_VERSION}/nacos-server-${NACOS_VERSION}.tar.gz -P /tmp \
-    && tar -xzvf /tmp/nacos-server-${NACOS_VERSION}.tar.gz -C /opt \
-    && apt-get autoremove -y wget \
-    && ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo '$TIME_ZONE' > /etc/timezone \
-    && apt-get -y clean \
-    && rm -rf /tmp/* /var/tmp/* /var/cache/apt /var/lib/apt/lists/*
+WORKDIR /$BASE_DIR
 
+ADD nacos-server-1.1.3.tar.gz /home/
 
-WORKDIR /opt/nacos
+RUN set -x \
+    && rm -rf /home/nacos/bin/* /home/nacos/conf/*.properties /home/nacos/conf/*.example /home/nacos/conf/nacos-mysql.sql \
+    && ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo '$TIME_ZONE' > /etc/timezone
 
-ADD run.sh /opt/nacos/run.sh
+ADD docker-startup.sh bin/docker-startup.sh
+ADD application.properties conf/application.properties
 
 # set startup log dir
 RUN mkdir -p logs \
@@ -40,8 +38,8 @@ RUN mkdir -p logs \
     && touch start.out \
     && ln -sf /dev/stdout start.out \
     && ln -sf /dev/stderr start.out \
-    && cd /opt/nacos \
-    && chmod a+x run.sh
+    && cd /home/nacos/bin \
+    && chmod a+x docker-startup.sh
 
 EXPOSE 8848
-CMD "/opt/nacos/run.sh"
+ENTRYPOINT ["bin/docker-startup.sh"]

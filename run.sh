@@ -1,1 +1,1 @@
-bash -f /opt/nacos/bin/startup.sh -m standalone
+docker run --name nacos-1.1.3 --privileged=true --restart=always --net=host -d -v /youself_path/application.properties:/home/nacos/conf/application.properties -v /youself_path/logs:/home/nacos/logs/ tqwboy/nacos:1.1.3
